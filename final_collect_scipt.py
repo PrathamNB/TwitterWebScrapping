@@ -1,28 +1,12 @@
-# collect_combined_final_prod.py
-# Production-ready single combined-query collector (attach mode) with:
-# - debug-chrome attach (no login automation)
-# - combined hashtags query + since:YYYY-MM-DD (no until)
-# - extracts hashtags + mentions columns
-# - efficient O(1) dedupe while streaming (sets)
-# - tail-only parsing to reduce repeated work
-# - robust handling of transient UI failures:
-#     * detects "Something went wrong / Try reloading" (and similar)
-#     * cooldown + refresh with backoff
-#     * additional cooldown on throttling before stopping
-# - graceful stop conditions
-# - logging to console + file
-# - periodic checkpoint saves (so you don’t lose progress)
-#
-# Usage:
-# 1) Start debug Chrome (keep open) and login to X:
-#    chrome.exe --remote-debugging-port=9222 --user-data-dir="C:\temp\x_debug_profile" --start-minimized
-# 2) Run:
-#    python collect_combined_final_prod.py
-#
-# Output:
-#   data/raw/tweets_combined.csv
-#   data/raw/tweets_partial.csv   (checkpoint)
-#   collector.log                (logs)
+"""
+Twitter Scraper - Unified Turbo Version (MINIMAL FIXES APPLIED)
+
+Applied (as requested):
+1) Process more DOM tweets each loop: articles[-20:] -> articles[-80:]
+2) Replace PAGE_DOWN scrolling with JS scroll + simple stall nudge
+
+Everything else kept the same (no overcoding).
+"""
 
 import time
 import random
@@ -37,115 +21,48 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
 
-
-# -------------------------
-# Config (tweak if needed)
-# -------------------------
-OUT_CSV = Path("data/raw/tweets_combined.csv")
-PARTIAL_CSV = Path("data/raw/tweets_partial.csv")
-LOG_FILE = Path("collector.log")
-
-TARGET = 2000                 # target rows
-MAX_SCROLLS = 2500            # hard safety cap
-
-TAIL_PARSE_N = 70             # parse only last N articles per loop (optimization)
-MAX_NO_NEW_ROUNDS = 18        # stop if no new unique tweets for many rounds
-MAX_ERROR_RECOVERS = 8        # stop if too many overlay recoveries
-MAX_OLD_HITS = 450            # stop if many older-than-24h tweets (boundary crossed)
-
-# checkpoint saves
-CHECKPOINT_EVERY = 200         # save partial file every N collected tweets
-
-# Cooldown grows on consecutive errors (in seconds)
-COOLDOWN_BASE = 10
-COOLDOWN_CAP = 90
-
-# If throttling is detected, pause once before giving up
-THROTTLE_COOLDOWN_SECONDS = 60
-THROTTLE_COOLDOWN_TRIGGER = 10  # when no_new_rounds reaches this, do a 60s pause once
+# --- CONFIGURATION ---
+TARGET = 2000
+REFRESH_EVERY = 150  # Clears browser memory every 150 tweets
+CHECKPOINT_EVERY = 50
+MAX_SCROLLS = 8000
+OUTPUT_DIR = Path("data/raw")
+OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+OUT_CSV = OUTPUT_DIR / "tweets_combined.csv"
+PARTIAL_CSV = OUTPUT_DIR / "tweets_partial.csv"
 
 
-# -------------------------
-# Logging
-# -------------------------
+# --- LOGGING SETUP ---
 def setup_logging():
-    LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
     logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s | %(levelname)s | %(message)s",
-        handlers=[
-            logging.FileHandler(LOG_FILE, encoding="utf-8"),
-            logging.StreamHandler(),
-        ],
+        level=logging.INFO, format="%(asctime)s | %(levelname)-8s | %(message)s"
     )
 
 
-def log(msg):
-    logging.info(msg)
+def log(msg, level="info"):
+    getattr(logging, level)(msg)
 
 
-# -------------------------
-# Selenium attach
-# -------------------------
-def build_attached_driver():
+# --- HELPER FUNCTIONS ---
+def build_driver():
     opts = Options()
-    # Attach to already-open Chrome started with --remote-debugging-port=9222
+    # Assumes Chrome started with remote debugging, e.g.:
+    # chrome.exe --remote-debugging-port=9222 --user-data-dir="C:\chrome-profile"
     opts.add_experimental_option("debuggerAddress", "127.0.0.1:9222")
     return webdriver.Chrome(options=opts)
 
 
-# -------------------------
-# Page + parsing helpers
-# -------------------------
-def has_error_overlay(driver) -> bool:
-    src = (driver.page_source or "").lower()
-    return (
-        ("something went wrong" in src and "try reloading" in src)
-        or ("try again" in src)
-        or ("rate limit" in src)
-    )
-
-
-def cooldown_then_refresh(driver, attempt: int):
-    cooldown = min(COOLDOWN_CAP, COOLDOWN_BASE * (attempt + 1))
-    log(f"[RECOVER] Error overlay detected. Cooling down {cooldown}s...")
-    time.sleep(cooldown)
-    log("[RECOVER] Refreshing page...")
-    driver.refresh()
-    time.sleep(random.uniform(4.0, 7.0))
-
-
-def warmup_scrolls(driver, n=2):
-    # After refresh, X sometimes needs a couple scrolls before loading again
-    for _ in range(n):
-        driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-        time.sleep(random.uniform(1.2, 2.0))
-
-
-def human_sleep(a=0.9, b=1.9):
-    time.sleep(random.uniform(a, b))
-
-
-def parse_ts(ts: str):
-    if not ts:
-        return None
+def safe_text(el, css):
     try:
-        return datetime.fromisoformat(ts.replace("Z", "+00:00"))
-    except Exception:
-        return None
-
-
-def safe_text(parent, css):
-    try:
-        return parent.find_element(By.CSS_SELECTOR, css).text.strip()
-    except Exception:
+        return el.find_element(By.CSS_SELECTOR, css).text.strip()
+    except:
         return ""
 
 
-def safe_attr(parent, css, attr):
+def safe_attr(el, css, attr):
     try:
-        return parent.find_element(By.CSS_SELECTOR, css).get_attribute(attr)
-    except Exception:
+        return el.find_element(By.CSS_SELECTOR, css).get_attribute(attr)
+    except:
         return None
 
 
@@ -155,238 +72,187 @@ def parse_count(s: str) -> int:
         return 0
     mult = 1
     if s.endswith("K"):
-        mult = 1000
-        s = s[:-1]
+        mult, s = 1000, s[:-1]
     elif s.endswith("M"):
-        mult = 1_000_000
-        s = s[:-1]
+        mult, s = 1000000, s[:-1]
     try:
         return int(float(s) * mult)
-    except Exception:
+    except:
         return 0
 
 
-def extract_hashtags(text: str):
-    return re.findall(r"#\w+", text or "")
-
-
-def extract_mentions(text: str):
-    return re.findall(r"@\w+", text or "")
-
-
-def extract_one(article):
-    ts_raw = safe_attr(article, "time", "datetime")
-    ts = parse_ts(ts_raw)
+def parse_ts(ts: str):
+    """Robust ISO timestamp parsing."""
     if not ts:
         return None
-
-    # authoritative last-24h filter (UTC)
-    if ts < datetime.now(timezone.utc) - timedelta(hours=24):
-        return "OLD"
-
-    content = safe_text(article, '[data-testid="tweetText"]')
-    if not content:
+    try:
+        return datetime.fromisoformat(ts.replace("Z", "+00:00"))
+    except:
         return None
 
-    url, tid = "", ""
+
+def build_url():
+    """Builds the search query for since yesterday (date-based); we enforce true rolling 24h in code."""
+    yesterday = (date.today() - timedelta(days=1)).isoformat()
+    query = f"(#nifty50 OR #sensex OR #intraday OR #banknifty) since:{yesterday}"
+    return f"https://x.com/search?q={quote(query)}&src=typed_query&f=live"
+
+
+def checkpoint(rows):
+    """Saves progress periodically to partial_csv."""
     try:
+        pd.DataFrame(rows).to_csv(PARTIAL_CSV, index=False, encoding="utf-8")
+        log(f"Checkpoint saved: {len(rows)} total rows processed.")
+    except Exception as e:
+        log(f"Checkpoint failed: {e}", "error")
+
+
+def metric_count(article, testid_options):
+    """
+    Minimal robustness:
+    - sometimes 'repost' instead of 'retweet'
+    - sometimes count text is inside spans
+    """
+    for tid in testid_options:
+        try:
+            el = article.find_element(By.CSS_SELECTOR, f'[data-testid="{tid}"]')
+            txt = (el.text or "").strip()
+            if txt:
+                return parse_count(txt)
+
+            spans = el.find_elements(By.CSS_SELECTOR, "span")
+            for sp in spans:
+                t = (sp.text or "").strip()
+                if t:
+                    return parse_count(t)
+        except:
+            continue
+    return 0
+
+
+# --- CORE EXTRACTION ---
+def extract_tweet(article):
+    """Full extraction including metrics, optimized for speed."""
+    try:
+        ts_raw = safe_attr(article, "time", "datetime")
+        ts = parse_ts(ts_raw)
+        if not ts:
+            return None
+
+        # 24h Filter
+        if ts < datetime.now(timezone.utc) - timedelta(hours=24):
+            return "OLD"
+
+        content = safe_text(article, '[data-testid="tweetText"]')
+
+        url = ""
         for a in article.find_elements(By.CSS_SELECTOR, "a"):
             h = a.get_attribute("href") or ""
             if "/status/" in h:
-                url = h
-                tid = h.split("/status/")[-1].split("?")[0]
+                url = h.split("?")[0]
                 break
-    except Exception:
-        pass
+        if not url:
+            return None
 
-    tags = extract_hashtags(content)
-    ments = extract_mentions(content)
-
-    return {
-        "tweet_id": tid,
-        "timestamp_utc": ts_raw,
-        "content": content,
-        "like_count": parse_count(safe_text(article, '[data-testid="like"]')),
-        "retweet_count": parse_count(safe_text(article, '[data-testid="retweet"]')),
-        "reply_count": parse_count(safe_text(article, '[data-testid="reply"]')),
-        "hashtags": ",".join(tags),
-        "mentions": ",".join(ments),
-        "url": url,
-        "query": "combined_since",
-    }
-
-
-def build_search_url_since_only():
-    # You asked for "since:YYYY-MM-DD" only (no until).
-    # We'll keep it dynamic: since yesterday (local date).
-    yesterday = (date.today() - timedelta(days=1)).isoformat()
-    query_text = f"(#nifty50 OR #sensex OR #intraday OR #banknifty) since:{yesterday}"
-    q = quote(query_text)
-    return f"https://x.com/search?q={q}&src=typed_query&f=live"
+        return {
+            "tweet_id": url.split("/")[-1],
+            "timestamp_utc": ts_raw,
+            "content": content,
+            "like_count": metric_count(article, ["like"]),
+            "retweet_count": metric_count(article, ["retweet", "repost"]),
+            "reply_count": metric_count(article, ["reply"]),
+            "hashtags": ",".join(re.findall(r"#\w+", content)),
+            "mentions": ",".join(re.findall(r"@\w+", content)),
+            "url": url,
+            "query": "combined_finance",
+        }
+    except:
+        return None
 
 
-def checkpoint_save(rows):
-    # Save partial progress safely
-    try:
-        pd.DataFrame(rows).to_csv(PARTIAL_CSV, index=False, encoding="utf-8")
-        log(f"[CHECKPOINT] Saved partial file: {PARTIAL_CSV} (rows={len(rows)})")
-    except Exception as e:
-        log(f"[CHECKPOINT] Failed to save partial: {e}")
-
-
-# -------------------------
-# Main
-# -------------------------
+# --- MAIN LOOP ---
 def main():
     setup_logging()
-    OUT_CSV.parent.mkdir(parents=True, exist_ok=True)
+    log("=" * 70)
+    log("UNIFIED TURBO SCRAPER STARTING (MINIMAL FIXES)")
+    log("=" * 70)
 
-    driver = build_attached_driver()
+    driver = build_driver()
+    rows, seen_ids = [], set()
 
-    rows = []
-    seen_ids = set()
-    seen_urls = set()
+    url = build_url()
+    log(f"Target URL: {url}")
+    driver.get(url)
+    time.sleep(6)
 
-    search_url = build_search_url_since_only()
-    log("Opening search URL:")
-    log(search_url)
-
-    throttling_cooldown_used = False
+    scrolls = 0
+    last_refresh_count = 0
 
     try:
-        driver.get(search_url)
-        time.sleep(5)
-
-        scrolls = 0
-        no_new_rounds = 0
-        old_hits = 0
-        error_recovers = 0
-
         while len(rows) < TARGET and scrolls < MAX_SCROLLS:
-            # 1) Error overlay recovery
-            if has_error_overlay(driver):
-                cooldown_then_refresh(driver, error_recovers)
-                warmup_scrolls(driver, n=2)
-                error_recovers += 1
-                if error_recovers >= MAX_ERROR_RECOVERS:
-                    log("[STOP] Too many overlay recover attempts. Stopping gracefully.")
-                    break
-                continue
-            else:
-                error_recovers = 0
-
             articles = driver.find_elements(By.CSS_SELECTOR, "article")
-            if not articles:
-                no_new_rounds += 1
-                log(f"[WARN] No articles visible (no_new_rounds={no_new_rounds}).")
-                if no_new_rounds >= MAX_NO_NEW_ROUNDS:
-                    log("[STOP] No content repeatedly. Stopping.")
-                    break
-                warmup_scrolls(driver, n=1)
-                continue
+            new_this_batch = 0
+            old_this_batch = 0
 
-            # 2) Optimization: only parse tail window
-            tail = articles[-TAIL_PARSE_N:] if len(articles) > TAIL_PARSE_N else articles
-
-            new_this_round = 0
-            for art in tail:
-                data = extract_one(art)
+            # CHANGE #1: process more recent tweets per loop
+            for art in articles[-80:]:
+                data = extract_tweet(art)
 
                 if data == "OLD":
-                    old_hits += 1
-                    continue
-                if not data:
+                    old_this_batch += 1
                     continue
 
-                tid = data.get("tweet_id") or ""
-                url = data.get("url") or ""
-
-                # streaming dedupe
-                if tid and tid in seen_ids:
-                    continue
-                if url and url in seen_urls:
+                if not data or data["tweet_id"] in seen_ids:
                     continue
 
-                if tid:
-                    seen_ids.add(tid)
-                if url:
-                    seen_urls.add(url)
-
+                seen_ids.add(data["tweet_id"])
                 rows.append(data)
-                new_this_round += 1
+                new_this_batch += 1
 
-                # progress logs + checkpoint
-                if len(rows) % 100 == 0:
-                    log(f"Collected {len(rows)} tweets (scrolls={scrolls})")
+            # CHANGE #2: JS scroll + simple stall nudge
+            prev_count = len(articles)
+            driver.execute_script("window.scrollBy(0, 1400);")
+            time.sleep(random.uniform(1.0, 1.6))
 
-                if len(rows) % CHECKPOINT_EVERY == 0:
-                    checkpoint_save(rows)
-
-                if len(rows) >= TARGET:
-                    break
-
-            # 3) Stop if we crossed the 24h boundary often
-            if old_hits >= MAX_OLD_HITS:
-                log("[STOP] Seeing many older-than-24h tweets. Likely past boundary. Stopping.")
-                break
-
-            # 4) Throttling / no-progress logic
-            if new_this_round == 0:
-                no_new_rounds += 1
-            else:
-                no_new_rounds = 0
-
-            if no_new_rounds == THROTTLE_COOLDOWN_TRIGGER and not throttling_cooldown_used:
-                log(f"[THROTTLE] No new tweets for {no_new_rounds} rounds. Cooling down {THROTTLE_COOLDOWN_SECONDS}s...")
-                time.sleep(THROTTLE_COOLDOWN_SECONDS)
-                throttling_cooldown_used = True
-                warmup_scrolls(driver, n=2)
-
-            if no_new_rounds >= MAX_NO_NEW_ROUNDS:
-                log("[STOP] No new unique tweets for many rounds (throttling). Stopping.")
-                break
-
-            # 5) Scroll + pacing
-            driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-
-            # gentle adaptive pacing
-            if new_this_round >= 10:
-                time.sleep(random.uniform(0.6, 1.1))
-            elif new_this_round >= 3:
-                time.sleep(random.uniform(1.0, 1.7))
-            else:
-                time.sleep(random.uniform(1.8, 2.8))
+            new_count = len(driver.find_elements(By.CSS_SELECTOR, "article"))
+            if new_count <= prev_count and new_this_batch == 0:
+                # nudge harder if stuck
+                driver.execute_script("window.scrollBy(0, 2600);")
+                time.sleep(2.0)
 
             scrolls += 1
 
+            if len(rows) % CHECKPOINT_EVERY == 0 and new_this_batch > 0:
+                log(
+                    f"Progress: {len(rows)}/{TARGET} | Scrolls: {scrolls} | old_in_batch={old_this_batch}"
+                )
+                checkpoint(rows)
+
+            # BROWSER REFRESH: Clears DOM memory lag
+            if len(rows) - last_refresh_count >= REFRESH_EVERY:
+                log("Refreshing page to clear DOM memory and restore speed...")
+                driver.refresh()
+                time.sleep(8)
+                last_refresh_count = len(rows)
+
+    except KeyboardInterrupt:
+        log("Manual stop. Saving data...")
+    except Exception as e:
+        log(f"Critical Error: {e}", "error")
     finally:
+        if rows:
+            df = pd.DataFrame(rows).drop_duplicates("tweet_id")
+            df.to_csv(OUT_CSV, index=False, encoding="utf-8")
+            log("=" * 70)
+            log(f"FINISHED: {len(df)} unique tweets saved to {OUT_CSV}.")
+            log("=" * 70)
+        else:
+            log("No rows collected. Nothing to save.", "warning")
+
         try:
             driver.quit()
-        except Exception:
+        except:
             pass
-
-    if not rows:
-        log("No tweets collected. Ensure X results are visible in debug Chrome.")
-        return
-
-    df = pd.DataFrame(rows)
-
-    # Final safety: authoritative last-24h filter + dedupe again
-    df["ts_dt"] = pd.to_datetime(df["timestamp_utc"], utc=True, errors="coerce")
-    df = df[df["ts_dt"].notna()]
-    df = df[df["ts_dt"] >= datetime.now(timezone.utc) - timedelta(hours=24)]
-    df = df.drop(columns=["ts_dt"])
-
-    if "tweet_id" in df.columns:
-        df = df.drop_duplicates(subset=["tweet_id"], keep="first")
-    df = df.drop_duplicates(subset=["url"], keep="first")
-
-    df.to_csv(OUT_CSV, index=False, encoding="utf-8")
-    log(f"\nFinal count: {len(df)} tweets")
-    log(f"Saved to {OUT_CSV}")
-
-    # one last checkpoint copy
-    checkpoint_save(rows)
 
 
 if __name__ == "__main__":
