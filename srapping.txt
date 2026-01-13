@@ -1,0 +1,54 @@
+[Running] python -u "c:\Users\pratham.shetty\Desktop\market_intel\run_collect_profile_ok.py"
+Starting STABLE collection...
+Collected 100 tweets
+Collected 200 tweets
+Collected 300 tweets
+Collected 400 tweets
+Collected 500 tweets
+No new content loaded for many scrolls (rate limit / overlay). Stopping.
+
+Final count: 565 tweets
+Saved to data/raw/tweets_2000.csv
+
+[Done] exited with code=0 in 930.405 seconds
+
+[Running] python -u "c:\Users\pratham.shetty\Desktop\market_intel\run_collect_profile_ok.py"
+
+=== Collecting for #nifty50 ===
+Opening: https://x.com/search?q=%23nifty50&src=typed_query&f=live
+#nifty50: 100 collected
+#nifty50: 200 collected
+#nifty50: 300 collected
+#nifty50: 400 collected
+#nifty50: finished with 400 tweets
+Saved per-tag file: data\raw\tweets_nifty50.csv
+
+=== Collecting for #sensex ===
+Opening: https://x.com/search?q=%23sensex&src=typed_query&f=live
+[STOP] #sensex: no new tweets for many scrolls (throttling).
+#sensex: finished with 49 tweets
+Saved per-tag file: data\raw\tweets_sensex.csv
+
+=== Collecting for #intraday ===
+Opening: https://x.com/search?q=%23intraday&src=typed_query&f=live
+[STOP] #intraday: no new tweets for many scrolls (throttling).
+#intraday: finished with 61 tweets
+Saved per-tag file: data\raw\tweets_intraday.csv
+
+=== Collecting for #banknifty ===
+Opening: https://x.com/search?q=%23banknifty&src=typed_query&f=live
+#banknifty: 100 collected
+#banknifty: 200 collected
+#banknifty: 300 collected
+[RECOVER] Overlay detected. Refreshing + waiting 6s...
+[RECOVER] Overlay detected. Refreshing + waiting 12s...
+[RECOVER] Overlay detected. Refreshing + waiting 18s...
+[RECOVER] Overlay detected. Refreshing + waiting 24s...
+[RECOVER] Overlay detected. Refreshing + waiting 30s...
+[RECOVER] Overlay detected. Refreshing + waiting 36s...
+[STOP] Too many recover attempts for this hashtag.
+#banknifty: finished with 333 tweets
+Saved per-tag file: data\raw\tweets_banknifty.csv
+
+Merged final count: 798 tweets
+Saved merged CSV: data\raw\tweets_merged.csv
