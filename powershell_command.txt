@@ -1,1 +1,5 @@
 Start-Process -FilePath "C:\Program Files\Google\Chrome\Application\chrome.exe" -ArgumentList "--remote-debugging-port=9222", "--user-data-dir=C:\temp\x_debug_profile"
+
+
+Start-Process -FilePath "C:\Program Files (x86)\Google\Chrome\Application\chrome.exe" -Argum
+entList "--remote-debugging-port=9222", "--user-data-dir=C:\temp\x_debug_profile"
