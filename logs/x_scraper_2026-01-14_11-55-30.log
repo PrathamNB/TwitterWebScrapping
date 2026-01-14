@@ -1,0 +1,52 @@
+2026-01-14 11:55:30,754 | INFO     | Logging to: logs\x_scraper_2026-01-14_11-55-30.log
+2026-01-14 11:55:30,755 | INFO     | ======================================================================
+2026-01-14 11:55:30,755 | INFO     | X SCRAPER - OPTIMIZED FOR SPEED
+2026-01-14 11:55:30,755 | INFO     | Target: 1000 tweets
+2026-01-14 11:55:30,755 | INFO     | ======================================================================
+2026-01-14 11:55:31,383 | INFO     | ╔══ Query: Q1 ══╗
+2026-01-14 11:55:31,385 | INFO     | ║ Target: 1000 more tweets
+2026-01-14 11:55:37,891 | INFO     | ║ Loop 0 | Total: 5/1000 | Rate: 300.0/min | DOM: 5
+2026-01-14 11:55:46,430 | INFO     | ║ Stalled. Refreshing...
+2026-01-14 11:56:34,991 | INFO     | ║ Stalled. Refreshing...
+2026-01-14 11:57:08,913 | INFO     | ╠═ Progress: 100/1000 (65.2 tweets/min)
+2026-01-14 11:57:08,923 | INFO     | ✓ Checkpoint: 100 rows
+2026-01-14 11:57:37,132 | INFO     | ║ Stalled. Refreshing...
+2026-01-14 11:57:50,877 | INFO     | ║ Loop 50 | Total: 148/1000 | Rate: 66.3/min | DOM: 5
+2026-01-14 11:57:50,878 | INFO     | ║ Stalled. Refreshing...
+2026-01-14 11:57:54,164 | INFO     | ║ Loop 50 | Total: 148/1000 | Rate: 64.8/min | DOM: 0
+2026-01-14 11:58:04,410 | INFO     | ║ Stalled. Refreshing...
+2026-01-14 11:58:12,004 | INFO     | ╚═ Query exhausted. Found 148 tweets in 155s
+2026-01-14 11:58:14,005 | INFO     | ╔══ Query: Q2 ══╗
+2026-01-14 11:58:14,005 | INFO     | ║ Target: 852 more tweets
+2026-01-14 11:58:19,625 | INFO     | ║ Loop 0 | Total: 149/1000 | Rate: 60.0/min | DOM: 1
+2026-01-14 11:58:24,051 | INFO     | ║ Stalled. Refreshing...
+2026-01-14 11:58:32,862 | INFO     | ║ Stalled. Refreshing...
+2026-01-14 11:58:38,701 | INFO     | ╚═ Query exhausted. Found 1 tweets in 19s
+2026-01-14 11:58:40,702 | INFO     | ╔══ Query: Q3 ══╗
+2026-01-14 11:58:40,702 | INFO     | ║ Target: 851 more tweets
+2026-01-14 11:58:47,042 | INFO     | ║ Loop 0 | Total: 153/1000 | Rate: 240.0/min | DOM: 5
+2026-01-14 11:58:55,872 | INFO     | ║ Stalled. Refreshing...
+2026-01-14 11:59:10,551 | INFO     | ║ Stalled. Refreshing...
+2026-01-14 11:59:16,443 | INFO     | ╚═ Query exhausted. Found 4 tweets in 30s
+2026-01-14 11:59:18,444 | INFO     | ╔══ Query: Q4 ══╗
+2026-01-14 11:59:18,444 | INFO     | ║ Target: 847 more tweets
+2026-01-14 11:59:25,008 | INFO     | ║ Loop 0 | Total: 157/1000 | Rate: 240.0/min | DOM: 5
+2026-01-14 11:59:33,172 | INFO     | ║ Stalled. Refreshing...
+2026-01-14 11:59:46,436 | INFO     | ║ Stalled. Refreshing...
+2026-01-14 11:59:52,432 | INFO     | ╚═ Query exhausted. Found 4 tweets in 28s
+2026-01-14 11:59:54,432 | INFO     | ╔══ Query: Q5 ══╗
+2026-01-14 11:59:54,432 | INFO     | ║ Target: 843 more tweets
+2026-01-14 12:00:01,017 | INFO     | ║ Loop 0 | Total: 162/1000 | Rate: 300.0/min | DOM: 5
+2026-01-14 12:00:09,476 | INFO     | ║ Stalled. Refreshing...
+2026-01-14 12:00:21,191 | INFO     | ║ Stalled. Refreshing...
+2026-01-14 12:00:31,656 | INFO     | ╚═ Query exhausted. Found 5 tweets in 31s
+2026-01-14 12:00:33,656 | INFO     | ======================================================================
+2026-01-14 12:00:33,656 | INFO     | COMPLETE: 162 tweets in 302s (32.2 tweets/min)
+2026-01-14 12:00:33,656 | INFO     | ======================================================================
+2026-01-14 12:00:33,664 | INFO     | ======================================================================
+2026-01-14 12:00:33,664 | INFO     | SAVED: 162 unique tweets → data\raw\tweets_combined.csv
+2026-01-14 12:00:33,664 | INFO     | Time: 302s | Rate: 32.2 tweets/min
+2026-01-14 12:00:33,664 | INFO     | ======================================================================
+2026-01-14 12:00:33,671 | INFO     | Hashtags: 158
+2026-01-14 12:00:33,672 | INFO     | Mentions: 14
+2026-01-14 12:00:33,673 | INFO     | Avg engagement: 0.7 likes
