@@ -149,7 +149,7 @@ def main():
     if "tweet_id" in df.columns:
         df = df.drop_duplicates("tweet_id", keep="first")
     df = df.drop_duplicates("url", keep="first")
-    print(f"    Removed {initial - len(df)} duplicates → {len(df)} unique")
+    print(f"Removed {initial - len(df)} duplicates - {len(df)} unique")
 
     df["date"] = df["ts_dt"].dt.strftime("%Y-%m-%d")
 
@@ -163,7 +163,7 @@ def main():
             for date, group in date_groups
         }
 
-        with tqdm(total=len(date_groups), desc="    Partitions") as pbar:
+        with tqdm(total=len(date_groups), desc="Partitions") as pbar:
             for future in as_completed(futures):
                 try:
                     date, count = future.result()
@@ -173,7 +173,7 @@ def main():
                 pbar.update(1)
 
     print(f"\n{'='*70}")
-    print(f"Complete! {len(df)} tweets → {len(results)} partitions")
+    print(f"Complete{len(df)} tweets {len(results)} partitions")
     print(f"Output: {OUTPUT_DIR}")
     for date, count in sorted(results):
         print(f"  {date}: {count} tweets")

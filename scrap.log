@@ -1,0 +1,43 @@
+2026-01-14 10:41:16,689 | INFO     | ======================================================================
+2026-01-14 10:41:16,689 | INFO     | X SCRAPER STARTING
+2026-01-14 10:41:16,689 | INFO     | ======================================================================
+2026-01-14 10:41:17,357 | INFO     | Target URL: https://x.com/search?q=%28%23nifty50%20OR%20%23sensex%20OR%20%23intraday%20OR%20%23banknifty%20OR%20nifty%20OR%20sensex%20OR%20banknifty%20OR%20%22nifty%2050%22%20OR%20%22bank%20nifty%22%20OR%20%24NIFTY%20OR%20%24BANKNIFTY%20OR%20%24SENSEX%20OR%20%23stocks%20OR%20%23stockmarket%29%20since%3A2026-01-13&src=typed_query&f=live
+2026-01-14 10:41:28,361 | INFO     | Alive | loop=0 | rows=11 | new=11 | old=0 | dom=11
+2026-01-14 10:42:10,869 | INFO     | Progress: 56/2000 | Scrolls: 11 | old_in_batch=0 | dom=10
+2026-01-14 10:42:10,881 | INFO     | Checkpoint saved: 56 total rows processed.
+2026-01-14 10:42:52,176 | INFO     | Stall detected. Hard scroll nudge...
+2026-01-14 10:43:09,617 | INFO     | Alive | loop=25 | rows=68 | new=0 | old=0 | dom=12
+2026-01-14 10:43:28,482 | INFO     | Stall detected. Hard scroll nudge...
+2026-01-14 10:44:04,565 | INFO     | Progress: 111/2000 | Scrolls: 38 | old_in_batch=0 | dom=17
+2026-01-14 10:44:04,574 | INFO     | Checkpoint saved: 111 total rows processed.
+2026-01-14 10:44:44,959 | INFO     | Stall detected. Hard scroll nudge...
+2026-01-14 10:44:56,841 | INFO     | Alive | loop=50 | rows=142 | new=3 | old=0 | dom=11
+2026-01-14 10:44:59,956 | INFO     | Progress: 155/2000 | Scrolls: 51 | old_in_batch=0 | dom=14
+2026-01-14 10:44:59,961 | INFO     | Checkpoint saved: 155 total rows processed.
+2026-01-14 10:45:18,618 | INFO     | Progress: 202/2000 | Scrolls: 57 | old_in_batch=0 | dom=15
+2026-01-14 10:45:18,624 | INFO     | Checkpoint saved: 202 total rows processed.
+2026-01-14 10:45:42,738 | INFO     | Progress: 255/2000 | Scrolls: 64 | old_in_batch=0 | dom=11
+2026-01-14 10:45:42,745 | INFO     | Checkpoint saved: 255 total rows processed.
+2026-01-14 10:46:07,123 | INFO     | Progress: 308/2000 | Scrolls: 71 | old_in_batch=0 | dom=17
+2026-01-14 10:46:07,130 | INFO     | Checkpoint saved: 308 total rows processed.
+2026-01-14 10:46:21,138 | INFO     | Alive | loop=75 | rows=332 | new=0 | old=0 | dom=10
+2026-01-14 10:46:28,216 | INFO     | Progress: 353/2000 | Scrolls: 77 | old_in_batch=0 | dom=12
+2026-01-14 10:46:28,224 | INFO     | Checkpoint saved: 353 total rows processed.
+2026-01-14 10:46:54,048 | INFO     | Progress: 410/2000 | Scrolls: 86 | old_in_batch=0 | dom=13
+2026-01-14 10:46:54,057 | INFO     | Checkpoint saved: 410 total rows processed.
+2026-01-14 10:46:54,861 | INFO     | Refreshing page to clear DOM memory and restore speed...
+2026-01-14 10:47:36,379 | INFO     | Progress: 450/2000 | Scrolls: 96 | old_in_batch=0 | dom=14
+2026-01-14 10:47:36,388 | INFO     | Checkpoint saved: 450 total rows processed.
+2026-01-14 10:47:49,524 | INFO     | Alive | loop=100 | rows=454 | new=0 | old=0 | dom=14
+2026-01-14 10:49:29,241 | INFO     | Alive | loop=125 | rows=487 | new=1 | old=0 | dom=12
+2026-01-14 10:50:43,609 | INFO     | Stall detected. Hard scroll nudge...
+2026-01-14 10:51:15,373 | INFO     | Alive | loop=150 | rows=497 | new=0 | old=0 | dom=11
+2026-01-14 10:51:29,152 | INFO     | Stall detected. Hard scroll nudge...
+2026-01-14 10:52:03,796 | INFO     | Stall detected. Hard scroll nudge...
+2026-01-14 10:52:38,697 | INFO     | Stall detected. Hard scroll nudge...
+2026-01-14 10:53:03,390 | INFO     | Alive | loop=175 | rows=497 | new=0 | old=0 | dom=11
+2026-01-14 10:53:13,094 | INFO     | Stall detected. Hard scroll nudge...
+2026-01-14 10:53:45,846 | INFO     | No new tweets available for this query in the last 24h window. Collected 497 unique tweets. Exiting gracefully.
+2026-01-14 10:53:45,900 | INFO     | ======================================================================
+2026-01-14 10:53:45,900 | INFO     | FINISHED: 497 unique tweets saved to data\raw\tweets_combined.csv.
+2026-01-14 10:53:45,900 | INFO     | ======================================================================

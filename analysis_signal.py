@@ -21,46 +21,17 @@ OUTPUT_DIR = Path("data/signals")
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 BULLISH = {
-    "buy",
-    "bull",
-    "bullish",
-    "breakout",
-    "long",
-    "support",
-    "upside",
-    "target",
-    "rally",
-    "green",
-    "profit",
-    "gain",
-    "moon",
-    "rocket",
-    "accumulate",
-    "hold",
-    "bounce",
-    "surge",
-    "pump",
+    "buy", "bull", "bullish", "breakout", "long", "support", "target", "rally",
+    "profit", "gain", "moon", "rocket", "accumulate", "hold", "bounce",
+    "teji", "badhat", "kharido", "munafa", "uchaal", "paisa banega", 
+    "तेज़ी", "खरीदो", "मुनाफा", "बढ़त", "ऊपर जाएगा"
 }
 
 BEARISH = {
-    "sell",
-    "bear",
-    "bearish",
-    "short",
-    "breakdown",
-    "resistance",
-    "downside",
-    "stoploss",
-    "crash",
-    "dump",
-    "fall",
-    "red",
-    "loss",
-    "exit",
-    "panic",
-    "drop",
-    "decline",
-    "correction",
+    "sell", "bear", "bearish", "short", "breakdown", "resistance", "downside",
+    "crash", "dump", "panic", "drop", "loss", "exit", "correction",
+    "mandi", "girawat", "becho", "nuksan", "jahar", "bahar nikal jao", "trap",
+    "मंदी", "गिरावट", "बेचो", "जहर", "बर्बाद", "धड़ाम"
 }
 
 
@@ -71,13 +42,23 @@ def tokenize(text: str) -> set:
 
 
 def keyword_sentiment(text: str) -> int:
-    tokens = tokenize(text)
+    if not text:
+        return 0
+    
+    text_lower = text.lower()
     score = 0
-    if tokens & BULLISH:
-        score += 1
-    if tokens & BEARISH:
-        score -= 1
-    return score
+    
+    for term in BULLISH:
+        if term in text_lower:
+            score += 1
+            
+    for term in BEARISH:
+        if term in text_lower:
+            score -= 1
+            
+    if score > 0: return 1
+    if score < 0: return -1
+    return 0
 
 
 def engagement_weight(row) -> float:
@@ -170,12 +151,23 @@ def main():
 
     # Hourly aggregation
     print("Aggregating hourly with confidence intervals...")
+    if df.empty:
+        print("ERROR: DataFrame is empty after processing. Check your input parquet files.")
+        return
+
     hourly = (
         df.set_index("ts")
-        .resample("1H")[["keyword_signal", "tfidf_sentiment", "combined_signal"]]
-        .apply(list)
+        .resample("1H")
+        .agg({
+            "keyword_signal": list,
+            "tfidf_sentiment": list,
+            "combined_signal": list
+        })
         .reset_index()
     )
+
+    # Optional: Filter out hours with 0 tweets to avoid bootstrap errors
+    hourly = hourly[hourly["combined_signal"].map(len) > 0]
 
     records = []
     for _, row in hourly.iterrows():
@@ -204,7 +196,7 @@ def main():
     # Save
     output_csv = OUTPUT_DIR / "hourly_signals.csv"
     signals.to_csv(output_csv, index=False)
-    print(f"\n✓ Saved: {output_csv}")
+    print(f"\n Saved: {output_csv}")
     print(f"\nSignals:\n{signals}")
 
     # Visualize
@@ -250,11 +242,11 @@ def main():
 
     plot_path = OUTPUT_DIR / "signals.png"
     plt.savefig(plot_path, dpi=150, bbox_inches="tight")
-    print(f"✓ Plot: {plot_path}")
+    print(f" Plot: {plot_path}")
     plt.show()
 
     print(
-        f"\n{'='*60}\nComplete! Processed {len(df)} tweets → {len(signals)} hourly signals\n{'='*60}"
+        f"\n{'='*60}\nComplete Processed {len(df)} tweets {len(signals)} hourly signals\n{'='*60}"
     )
 
 
